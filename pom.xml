@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.googlecode.redbox-mint</groupId>
+	<artifactId>curation-manager-packager</artifactId>
+	<version>1.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+	<name>Curation Manager packager</name>
+	
+
+	<!-- Typically these would be provided by an institutional build, but these 
+		are ok for fallback defaults and/or debugging values. -->
+	<properties>
+    <project.home>target</project.home>
+		<server.url.base>http://${ip.address}:${server.port}/redbox/</server.url.base>
+		<mint.proxy.server>http://localhost:9001</mint.proxy.server>
+		<mint.amq.broker>tcp://localhost:9201</mint.amq.broker>
+		<dir.jetty>${project.home}/jetty</dir.jetty>
+		<dir.harvestconfig>${project.home}/harvester</dir.harvestconfig>
+    <dir.curationconfig>${project.home}/curationmanager</dir.curationconfig>
+		
+    <jetty.version>9.1.4.v20140401</jetty.version>
+		<!-- Control scripts try to auto-detect proxy. Use this value if you want 
+			Java to specifically exclude certain hosts from proxying. -->
+		<non.proxy.hosts>localhost</non.proxy.hosts>
+	</properties>
+	<dependencies>
+		<!-- Curation Manager -->
+		<dependency>
+      <groupId>au.com.redboxresearchdata</groupId>
+      <artifactId>CurationManager</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <type>war</type>
+    </dependency>
+     <!-- Harvester Manager -->
+    <dependency>
+      <groupId>au.com.redboxresearchdata</groupId>
+      <artifactId>json-harvester-manager</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <type>war</type>
+    </dependency>
+     <!-- OAI PMH Server -->
+    <dependency>
+  <groupId>au.com.redboxresearchdata.oai</groupId>
+  <artifactId>oai-server</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <type>war</type>
+</dependency>
+
+		<!-- Jetty Web Server -->
+    <dependency>
+    <groupId>org.eclipse.jetty</groupId>
+    <artifactId>jetty-distribution</artifactId>
+    <version>${jetty.version}</version>
+    <type>tar.gz</type>
+    <exclusions>
+      <exclusion>
+      <groupId>org.eclipse.jetty</groupId>
+     <artifactId>test-proxy-webapp</artifactId>
+    
+      </exclusion>
+      <exclusion>
+      <groupId>org.eclipse.jetty</groupId>
+     <artifactId>test-jetty-webapp</artifactId>
+    
+      </exclusion>
+    </exclusions>
+</dependency> 
+
+	</dependencies>
+	<build>
+		<plugins>
+    
+					<!-- Support retrieving dependencies from WAR artifacts 
+					<plugin>
+						<groupId>org.appfuse</groupId>
+						<artifactId>maven-warpath-plugin</artifactId>
+						<version>2.0.2</version>
+						<extensions>true</extensions>
+						<executions>
+							<execution>
+								<goals>
+									<goal>add-classes</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin-->
+					<!-- Remove previously deployed files -->
+					<plugin>
+						<artifactId>maven-clean-plugin</artifactId>
+						<version>2.4.1</version>
+						<configuration>
+							<filesets>
+								<fileset>
+									<directory>${dir.jetty}</directory>
+									<includes>
+										<include>lib/*.jar</include>
+										<include>plugins/*.jar</include>
+									</includes>
+								</fileset>
+							</filesets>
+						</configuration>
+					</plugin>
+					<!-- Copy dependencies and configuration resources -->
+					<plugin>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<version>2.1</version>
+						<executions>					
+							<!-- Curation Manager application -->
+							<execution>
+								<id>copy-cm-webapp</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/webapps</outputDirectory>
+									<artifactItems>
+										<artifactItem>									
+                      <groupId>au.com.redboxresearchdata</groupId>
+                      <artifactId>CurationManager</artifactId>
+                      <version>0.1-SNAPSHOT</version>
+                      <type>war</type>
+											<destFileName>curationmanager.war</destFileName>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>	
+              <!-- Harvester Manager application -->
+							<execution>
+								<id>copy-hm-webapp</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/webapps</outputDirectory>
+									<artifactItems>
+										<artifactItem>									
+                      <groupId>au.com.redboxresearchdata</groupId>
+                      <artifactId>json-harvester-manager</artifactId>
+                      <version>0.1-SNAPSHOT</version>
+                      <type>war</type>
+											<destFileName>json-harvester-manager.war</destFileName>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>  
+              <!-- OAIPMH application -->
+							<execution>
+								<id>copy-oai-webapp</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/webapps</outputDirectory>
+									<artifactItems>
+										<artifactItem>									
+                      <groupId>au.com.redboxresearchdata.oai</groupId>
+                      <artifactId>oai-server</artifactId>
+                      <version>1.0.0-SNAPSHOT</version>
+                      <type>war</type>
+											<destFileName>oai-server.war</destFileName>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+              <!-- OAIPMH harvester config -->
+							<execution>
+								<id>copy-oai-harvester-config</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${dir.harvestconfig}</outputDirectory>
+									<artifactItems>
+										<artifactItem>									
+  <groupId>au.com.redboxresearchdata.oai</groupId>
+  <artifactId>redbox-oai-feed</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <classifier>bin</classifier>
+  <type>zip</type>
+
+											<destFileName>redbox-oai-feed.zip</destFileName>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+							<!-- Jetty launcher -->
+							<execution>
+								<id>copy-jetty-start</id>
+								<phase>compile</phase>
+								<goals>
+									<goal>unpack</goal>
+								</goals>
+								<configuration>
+									<artifactItems>
+										<artifactItem>
+											<groupId>org.eclipse.jetty</groupId>
+											<artifactId>jetty-distribution</artifactId>
+                      <type>tar.gz</type>
+                      <outputDirectory>${project.build.directory}/extracted-jetty</outputDirectory>
+										</artifactItem>
+									</artifactItems>
+									<stripVersion>true</stripVersion>
+								</configuration>
+							</execution>
+							<!-- Jetty dependencies
+							<execution>
+								<id>copy-jetty-dependencies</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy-dependencies</goal>
+								</goals>
+								<configuration>
+									<includeGroupIds>org.mortbay.jetty</includeGroupIds>
+									<excludeArtifactIds>start</excludeArtifactIds>
+									<outputDirectory>${dir.jetty}/jetty/lib</outputDirectory>
+								</configuration>
+							</execution -->
+						</executions>
+					</plugin>
+          <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>2.4.3</version>
+        <configuration>
+          <encoding>UTF-8</encoding>
+          <!-- Workaround bug MRESOURCES-104 -->
+          <delimiters>
+            <delimiter>${*}</delimiter>
+          </delimiters>
+          <useDefaultDelimiters>false</useDefaultDelimiters>
+        </configuration>
+        <executions>
+        <execution>
+            <id>copy-harvestconfig</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${dir.harvestconfig}</outputDirectory>
+              <includeEmptyDirs>true</includeEmptyDirs>
+              <overwrite>true</overwrite>
+              <resources>
+                <resource>
+                  <directory>harvester</directory>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>copy-curationconfig</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${dir.curationconfig}</outputDirectory>
+              <includeEmptyDirs>true</includeEmptyDirs>
+              <overwrite>true</overwrite>
+              <resources>
+                <resource>
+                  <directory>curationmanager</directory>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          
+          <!-- Server files -->
+          <execution>
+            <id>copy-scripts</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${dir.jetty}</outputDirectory>
+              <includeEmptyDirs>true</includeEmptyDirs>
+              <overwrite>true</overwrite>
+              <resources>
+                <resource>
+                  <directory>jetty</directory>
+                  <filtering>true</filtering>
+                  <includes>
+                    <include>**/*.bat</include>
+                    <include>**/*.sh</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>copy-jetty-standalone</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${dir.jetty}</outputDirectory>
+              <includeEmptyDirs>true</includeEmptyDirs>
+              <overwrite>true</overwrite>
+              <resources>
+                <resource>
+                  <directory>${project.build.directory}/extracted-jetty/jetty-distribution-${jetty.version}</directory>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          
+        </executions>
+        
+
+      </plugin>
+      <plugin>
+    <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.7</version>
+                <executions>
+                    <execution>
+                        <id>move-jetty-standalone</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <move file   = "${project.build.directory}/extracted-jetty/jetty-distribution-${jetty.version}/"
+                                      tofile = "${dir.jetty}" />
+                                <move file   = "${project.build.directory}/webapps/"
+                                      todir = "${dir.jetty}" />
+                                <get src="http://dev.redboxresearchdata.com.au/curl_736_0.zip" dest="${project.build.directory}/curl.zip" />
+                                <unzip src="${project.build.directory}/curl.zip" dest="${dir.harvestconfig}"/>
+                                      
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>delete-unpacked-jetty-standalone</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <delete dir = "${project.build.directory}/extracted-jetty/jetty-distribution-${jetty.version}"/>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+</plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>make-assembly</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                <classifier>${classifier.value}</classifier>
+                <finalName>${package.finalname}</finalName>
+                  <descriptors>
+                    <descriptor>package.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+			<!-- Use Groovy to define a clean path to the top level directory. Windows 
+				pathing can be problematic, so we fix that here too
+			<plugin>
+				<groupId>org.codehaus.groovy.maven</groupId>
+				<artifactId>gmaven-plugin</artifactId>
+				<version>1.0</version>
+				<executions>
+					<execution>
+						<id>default</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>execute</goal>
+						</goals>
+						<configuration>
+							<source>${project.basedir}/setup.groovy</source>
+						</configuration>
+					</execution>
+					<execution>
+						<id>clean</id>
+						<phase>pre-clean</phase>
+						<goals>
+							<goal>execute</goal>
+						</goals>
+						<configuration>
+							<source>${project.basedir}/setup.groovy</source>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin -->
+		</plugins>
+		<pluginManagement>
+			<plugins>
+				<!--This plugin's configuration is used to store Eclipse m2e settings 
+					only. It has no influence on the Maven build itself. -->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.codehaus.mojo</groupId>
+										<artifactId>
+											exec-maven-plugin
+										</artifactId>
+										<versionRange>[1.1,)</versionRange>
+										<goals>
+											<goal>exec</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+	
+
+
+	
+	
+	<repositories>
+		<repository>
+			<id>fascinator-snapshots</id>
+			<url>http://dev.redboxresearchdata.com.au/nexus/content/repositories/central-snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>redbox-nexus</id>
+			<url>http://dev.redboxresearchdata.com.au/nexus/content/groups/public/</url>
+		</repository>
+	</repositories>
+	<scm>
+		<url>scm:git://github.com/redbox-mint/redbox.git</url>
+		<connection>scm:git://github.com/redbox-mint/redbox.git</connection>
+		<developerConnection>scm:git:https://github.com/redbox-mint/redbox.git</developerConnection>
+		<tag>HEAD</tag>
+	</scm>
+</project>

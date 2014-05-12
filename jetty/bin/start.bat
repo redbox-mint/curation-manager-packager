@@ -1,0 +1,1 @@
+java -Xms512m -Xmx1g -XX:MaxPermSize=512m -jar ..\start.jar jetty.home=.. -DcmConfigPath=../../curationmanager/ > ../logs/jetty.log
